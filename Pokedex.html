@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Retro Pokedex</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            /* Gameboy Palette */
+            --gb-darkest: #0f380f;
+            --gb-dark: #306230;
+            --gb-light: #8bac0f;
+            --gb-lightest: #9bbc0f;
+            --gb-alert: #d32f2f;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: #202020;
+            font-family: 'Press Start 2P', cursive;
+            margin: 0;
+            padding: 0; 
+            color: var(--gb-darkest);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        #pokedex-device {
+            background-color: var(--gb-lightest);
+            width: 100%;
+            max-width: 800px;
+            height: 100vh;
+            border: none; 
+            padding: 15px;
+            position: relative;
+            image-rendering: pixelated;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        @media (min-width: 800px) {
+            #pokedex-device {
+                height: auto;
+                min-height: 80vh;
+                border: 12px solid var(--gb-darkest);
+                border-radius: 4px 4px 40px 4px;
+                box-shadow: 15px 15px 0px rgba(0,0,0,0.5);
+                margin: 20px;
+                padding: 25px;
+            }
+        }
+
+        /* Header */
+        header {
+            border-bottom: 4px solid var(--gb-darkest);
+            padding-bottom: 15px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        h1 {
+            font-size: 16px;
+            margin: 0;
+            line-height: 1.5;
+        }
+        
+        .battery-display {
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .battery-low {
+            color: var(--gb-alert);
+            animation: pulse-red 1s infinite;
+        }
+
+        @keyframes pulse-red {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        /* Controls Area */
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-shrink: 0;
+            position: relative; 
+            z-index: 10;
+            align-items: center;
+        }
+
+        input {
+            background-color: var(--gb-light);
+            border: 3px solid var(--gb-darkest);
+            padding: 12px;
+            font-family: 'Press Start 2P', cursive;
+            color: var(--gb-darkest);
+            font-size: 10px;
+            outline: none;
+            width: 100%;
+            border-radius: 0;
+            flex-grow: 1;
+        }
+        
+        input::placeholder {
+            color: var(--gb-dark);
+            opacity: 0.7;
+        }
+
+        /* Scan Button */
+        #scan-btn {
+            background-color: var(--gb-darkest);
+            color: var(--gb-lightest);
+            border: 3px solid var(--gb-darkest);
+            padding: 12px;
+            cursor: pointer;
+            font-size: 16px; /* Icon size */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        #scan-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* --- CUSTOM RETRO SELECT DROPDOWN --- */
+        .custom-select-container {
+            position: relative;
+            width: 100px; /* Fixed width for filter on desktop */
+            font-size: 10px;
+            flex-shrink: 0;
+        }
+        
+        @media (max-width: 600px) {
+            .controls { flex-wrap: wrap; }
+            .custom-select-container { width: 100%; }
+            #scan-btn { width: auto; flex-grow: 0; }
+        }
+
+        .select-button {
+            background-color: var(--gb-light);
+            border: 3px solid var(--gb-darkest);
+            padding: 12px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .select-button:active {
+            background-color: var(--gb-lightest);
+        }
+
+        .select-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            max-height: 250px; 
+            overflow-y: auto;
+            background-color: var(--gb-lightest);
+            border: 3px solid var(--gb-darkest);
+            border-top: none;
+            z-index: 100;
+            box-shadow: 5px 5px 0px rgba(0,0,0,0.2);
+        }
+
+        .select-option {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px dotted var(--gb-dark);
+        }
+
+        .select-option:hover {
+            background-color: var(--gb-darkest);
+            color: var(--gb-lightest);
+        }
+        
+        .select-option.special-opt {
+            background-color: var(--gb-dark);
+            color: var(--gb-lightest);
+            font-weight: bold;
+        }
+        .select-option.special-opt:hover {
+            background-color: var(--gb-darkest);
+            color: #fff;
+        }
+
+        .select-dropdown.open {
+            display: block;
+        }
+
+        /* Grid View */
+        #pokemon-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+            gap: 12px;
+            overflow-y: auto;
+            flex-grow: 1;
+            padding-right: 5px;
+            padding-bottom: 20px;
+            align-content: start; 
+            grid-auto-rows: max-content;
+        }
+
+        ::-webkit-scrollbar {
+            width: 10px;
+            background: var(--gb-dark);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--gb-darkest);
+            border: 1px solid var(--gb-light);
+        }
+
+        .card {
+            background-color: var(--gb-light);
+            border: 3px solid var(--gb-dark);
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: auto;
+        }
+        
+        .card:active {
+            background-color: var(--gb-dark);
+            color: var(--gb-lightest);
+        }
+
+        .card img {
+            width: 65px;
+            height: 65px;
+            image-rendering: pixelated;
+        }
+
+        .card h3 {
+            font-size: 8px;
+            margin: 8px 0 5px 0;
+            text-transform: uppercase;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+        }
+
+        .type-badge {
+            font-size: 6px;
+            padding: 3px 4px;
+            background: var(--gb-darkest);
+            color: var(--gb-lightest);
+            display: inline-block;
+            margin: 2px;
+            text-transform: uppercase;
+        }
+
+        /* Detail View */
+        #detail-view {
+            display: none;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .detail-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-bottom: 10px;
+            border-bottom: 3px dashed var(--gb-dark);
+            flex-shrink: 0;
+        }
+
+        #back-btn {
+            background: var(--gb-darkest);
+            color: var(--gb-lightest);
+            border: none;
+            padding: 8px 12px;
+            font-family: inherit;
+            font-size: 10px;
+            cursor: pointer;
+        }
+
+        #detail-name {
+            font-size: clamp(12px, 5vw, 24px);
+            margin: 0;
+            text-transform: uppercase;
+            flex-grow: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .detail-scroll-area {
+            overflow-y: auto;
+            flex-grow: 1;
+            padding-top: 15px;
+            padding-bottom: 40px;
+        }
+
+        .detail-layout {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        @media (min-width: 700px) {
+            .detail-layout {
+                flex-direction: row;
+                align-items: flex-start;
+            }
+            .detail-left {
+                flex: 1;
+                position: sticky;
+                top: 0;
+            }
+            .detail-right {
+                flex: 2;
+            }
+        }
+
+        .detail-img-box {
+            background: var(--gb-light);
+            border: 4px solid var(--gb-darkest);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            position: relative;
+        }
+
+        .detail-img-box img {
+            width: 140px;
+            height: 140px;
+            object-fit: contain;
+        }
+
+        .section-box {
+            border: 3px solid var(--gb-dark);
+            padding: 10px;
+            margin-bottom: 15px;
+            background: rgba(139, 172, 15, 0.3);
+        }
+
+        .section-header {
+            background: var(--gb-darkest);
+            color: var(--gb-lightest);
+            padding: 5px;
+            text-align: center;
+            font-size: 10px;
+            margin: -10px -10px 10px -10px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            margin-bottom: 6px;
+            border-bottom: 1px dotted var(--gb-dark);
+            padding-bottom: 2px;
+        }
+
+        .evo-chain {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px; 
+        }
+        .evo-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            margin: 5px; 
+        }
+        .evo-item img {
+            width: 50px;
+            height: 50px;
+            border: 2px solid var(--gb-dark);
+            background: var(--gb-light);
+            margin-bottom: 8px; 
+        }
+        .evo-arrow { margin: 0 5px; font-size: 10px; }
+
+        /* MULTI-BUTTON CONTAINER */
+        #special-evo-container {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-top: 10px;
+            width: 100%;
+        }
+
+        .special-btn {
+            width: 100%;
+            padding: 12px;
+            background: var(--gb-darkest);
+            color: var(--gb-lightest);
+            border: 4px double var(--gb-light);
+            font-family: 'Press Start 2P', cursive;
+            font-size: 10px;
+            cursor: pointer;
+            text-transform: uppercase;
+            animation: bounce 2s infinite;
+        }
+        
+        .special-btn:disabled {
+            animation: none;
+            opacity: 0.7;
+            cursor: default;
+        }
+
+        /* --- SCANNER OVERLAY --- */
+        #scanner-overlay {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 56, 15, 0.95);
+            z-index: 200;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #camera-frame {
+            width: 90%;
+            max-width: 400px;
+            aspect-ratio: 1;
+            border: 4px solid var(--gb-lightest);
+            background: #000;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        #camera-feed {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: grayscale(100%) contrast(1.2) brightness(0.8) sepia(1) hue-rotate(50deg) saturate(3); /* Gameboy Camera Effect */
+        }
+
+        .scan-line {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: rgba(155, 188, 15, 0.5);
+            animation: scan 2s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes scan {
+            0% { top: 0%; }
+            100% { top: 100%; }
+        }
+
+        #capture-btn {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: var(--gb-lightest);
+            border: 8px solid var(--gb-dark);
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        
+        #capture-btn:active {
+            transform: scale(0.9);
+            border-color: var(--gb-lightest);
+            background: var(--gb-dark);
+        }
+
+        #scanner-close {
+            background: none;
+            border: none;
+            color: var(--gb-lightest);
+            font-family: inherit;
+            margin-top: 10px;
+            cursor: pointer;
+            font-size: 10px;
+        }
+
+        #analysis-popup {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            background: var(--gb-lightest);
+            border: 4px solid var(--gb-darkest);
+            padding: 20px;
+            text-align: center;
+            z-index: 210;
+            box-shadow: 10px 10px 0 rgba(0,0,0,0.5);
+        }
+
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+        @keyframes flashEvo { 0% { filter: brightness(1) invert(0); } 20% { filter: brightness(10); } 40% { filter: brightness(1) invert(1); } 60% { filter: brightness(10); } 80% { filter: brightness(1) invert(1); } 100% { filter: brightness(1) invert(0); } }
+        .animating { animation: flashEvo 1.5s steps(8) forwards; }
+        #loading { text-align: center; margin-top: 20px; font-size: 10px; animation: pulse 1s infinite; }
+        @keyframes pulse { 50% { opacity: 0.3; } }
+
+    </style>
+</head>
+<body>
+
+<div id="pokedex-device">
+    
+    <!-- LIST VIEW -->
+    <div id="list-view" style="display:flex; flex-direction:column; height:100%;">
+        <header>
+            <h1>POKEDEX <span>v3.5</span></h1>
+            <div id="battery-display" class="battery-display">BATTERY: --%</div>
+        </header>
+
+        <div class="controls">
+            <input type="text" id="search-input" placeholder="SEARCH...">
+            
+            <button id="scan-btn" title="Scan Pokemon">
+                <!-- Camera Icon -->
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M4 4h3l2-2h6l2 2h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm0 2v12h16V6h-2.5L15.5 4h-7L6.5 6H4zm8 11a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-2a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+                </svg>
+            </button>
+
+            <!-- CUSTOM SELECT -->
+            <div class="custom-select-container">
+                <div class="select-button" id="select-btn">
+                    <span id="select-label">ALL</span>
+                    <span>▼</span>
+                </div>
+                <div class="select-dropdown" id="select-options">
+                    <div class="select-option special-opt" data-value="mega">MEGA</div>
+                    <div class="select-option special-opt" data-value="gmax">GMAX</div>
+                    <div class="select-option" data-value="all">ALL</div>
+                    <div class="select-option" data-value="normal">NORMAL</div>
+                    <div class="select-option" data-value="fire">FIRE</div>
+                    <div class="select-option" data-value="water">WATER</div>
+                    <div class="select-option" data-value="grass">GRASS</div>
+                    <div class="select-option" data-value="electric">ELECTRIC</div>
+                    <div class="select-option" data-value="ice">ICE</div>
+                    <div class="select-option" data-value="fighting">FIGHTING</div>
+                    <div class="select-option" data-value="poison">POISON</div>
+                    <div class="select-option" data-value="ground">GROUND</div>
+                    <div class="select-option" data-value="flying">FLYING</div>
+                    <div class="select-option" data-value="psychic">PSYCHIC</div>
+                    <div class="select-option" data-value="bug">BUG</div>
+                    <div class="select-option" data-value="rock">ROCK</div>
+                    <div class="select-option" data-value="ghost">GHOST</div>
+                    <div class="select-option" data-value="dragon">DRAGON</div>
+                    <div class="select-option" data-value="steel">STEEL</div>
+                    <div class="select-option" data-value="dark">DARK</div>
+                    <div class="select-option" data-value="fairy">FAIRY</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="loading">INITIALIZING...</div>
+        <div id="pokemon-grid"></div>
+    </div>
+
+    <!-- SCANNER OVERLAY -->
+    <div id="scanner-overlay">
+        <div id="camera-frame">
+            <video id="camera-feed" autoplay playsinline muted></video>
+            <canvas id="capture-canvas" style="display:none;"></canvas>
+            <div class="scan-line"></div>
+        </div>
+        <div id="scanner-status" style="margin-bottom:10px; color:#8bac0f; text-align:center;">ALIGN SUBJECT</div>
+        <button id="capture-btn"></button>
+        <button id="scanner-close">CANCEL</button>
+    </div>
+
+    <!-- ANALYSIS POPUP -->
+    <div id="analysis-popup">
+        <h3 id="analysis-title">ANALYZING...</h3>
+        <p id="analysis-text" style="font-size:10px; line-height:1.5;">Please wait while Dex ID is retrieved.</p>
+        <button id="analysis-close" style="margin-top:15px; padding:10px; background:var(--gb-dark); color:white; border:none; display:none;">CLOSE</button>
+    </div>
+
+    <!-- DETAIL VIEW -->
+    <div id="detail-view">
+        <div class="detail-header">
+            <button id="back-btn">◀ BACK</button>
+            <h2 id="detail-name">BULBASAUR</h2>
+            <span id="detail-id" style="font-size: 10px;">#001</span>
+        </div>
+
+        <div class="detail-scroll-area">
+            <div class="detail-layout">
+                <div class="detail-left">
+                    <div class="detail-img-box">
+                        <img id="detail-img" src="" alt="Pokemon">
+                    </div>
+                    <div id="detail-types" style="display:flex; justify-content:center; gap:5px; margin-top:10px;"></div>
+                    <div id="special-evo-container"></div>
+                </div>
+
+                <div class="detail-right">
+                    <div class="section-box">
+                        <div class="section-header">DATA</div>
+                        <div class="stat-row">
+                            <span>HEIGHT</span>
+                            <span id="detail-height">0.7 m</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>WEIGHT</span>
+                            <span id="detail-weight">6.9 kg</span>
+                        </div>
+                        <div class="stat-row" style="border:none; padding-top:5px; display:block;">
+                             <div style="margin-bottom:3px;">ABILITIES:</div>
+                             <div id="detail-abilities" style="font-size:8px; line-height:1.4;"></div>
+                        </div>
+                    </div>
+
+                    <div class="section-box">
+                        <div class="section-header">BATTLE STATS</div>
+                        <div id="detail-stats-list"></div>
+                    </div>
+
+                    <div class="section-box">
+                        <div class="section-header">EVOLUTION CHAIN</div>
+                        <div id="detail-evolutions" class="evo-chain">Loading...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const apiKey = ""; // API KEY GOES HERE
+
+    // --- BATTERY LOGIC ---
+    const batteryDisplay = document.getElementById('battery-display');
+
+    function initBattery() {
+        if ('getBattery' in navigator) {
+            navigator.getBattery().then(battery => {
+                updateBatteryUI(battery);
+                battery.addEventListener('levelchange', () => updateBatteryUI(battery));
+                battery.addEventListener('chargingchange', () => updateBatteryUI(battery));
+            });
+        } else {
+            batteryDisplay.textContent = "BATTERY: --%";
+        }
+    }
+
+    function updateBatteryUI(battery) {
+        if (battery.charging) {
+            batteryDisplay.textContent = "BATTERY: CHARGING";
+            batteryDisplay.classList.remove('battery-low');
+        } else {
+            const level = Math.round(battery.level * 100);
+            batteryDisplay.textContent = `BATTERY: ${level}%`;
+            if (level <= 20) batteryDisplay.classList.add('battery-low');
+            else batteryDisplay.classList.remove('battery-low');
+        }
+    }
+
+    // --- SCANNER LOGIC ---
+    const scanBtn = document.getElementById('scan-btn');
+    const scannerOverlay = document.getElementById('scanner-overlay');
+    const cameraFeed = document.getElementById('camera-feed');
+    const captureBtn = document.getElementById('capture-btn');
+    const scannerClose = document.getElementById('scanner-close');
+    const canvas = document.getElementById('capture-canvas');
+    const scannerStatus = document.getElementById('scanner-status');
+    const analysisPopup = document.getElementById('analysis-popup');
+    const analysisTitle = document.getElementById('analysis-title');
+    const analysisText = document.getElementById('analysis-text');
+    const analysisClose = document.getElementById('analysis-close');
+    let stream = null;
+
+    scanBtn.addEventListener('click', async () => {
+        scannerOverlay.style.display = 'flex';
+        scannerStatus.textContent = "INITIALIZING SENSORS...";
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+            cameraFeed.srcObject = stream;
+            scannerStatus.textContent = "READY TO CAPTURE";
+        } catch (err) {
+            scannerStatus.textContent = "CAMERA ERROR";
+            console.error(err);
+        }
+    });
+
+    function stopCamera() {
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            stream = null;
+        }
+        scannerOverlay.style.display = 'none';
+        analysisPopup.style.display = 'none';
+    }
+
+    scannerClose.addEventListener('click', stopCamera);
+    analysisClose.addEventListener('click', () => {
+        analysisPopup.style.display = 'none';
+        if (analysisTitle.textContent === "ERROR") {
+            // Keep camera open to retry
+        } else {
+            stopCamera();
+        }
+    });
+
+    captureBtn.addEventListener('click', async () => {
+        if (!stream) return;
+        
+        // 1. Capture Frame
+        const ctx = canvas.getContext('2d');
+        canvas.width = cameraFeed.videoWidth;
+        canvas.height = cameraFeed.videoHeight;
+        ctx.drawImage(cameraFeed, 0, 0, canvas.width, canvas.height);
+        
+        // 2. Convert to Base64
+        const base64Image = canvas.toDataURL('image/jpeg').split(',')[1];
+
+        // 3. Show Analysis UI
+        analysisPopup.style.display = 'block';
+        analysisTitle.textContent = "ANALYZING...";
+        analysisText.textContent = "Consulting global database...";
+        analysisClose.style.display = 'none';
+
+        // 4. Call Gemini API
+        try {
+            const result = await identifyPokemon(base64Image);
+            
+            if (result && result.pokemon && result.pokemon !== 'none') {
+                analysisTitle.textContent = "IDENTIFIED!";
+                analysisText.textContent = `It's a ${result.pokemon.toUpperCase()}!`;
+                
+                // Find in DB
+                const found = allPokemonData.find(p => p.name.toLowerCase() === result.pokemon.toLowerCase());
+                
+                setTimeout(() => {
+                    if (found) {
+                        openDetail(found.id);
+                        stopCamera();
+                    } else {
+                        analysisText.textContent = `It's ${result.pokemon}, but data is not in current Dex.`;
+                        analysisClose.style.display = 'block';
+                    }
+                }, 1500);
+
+            } else {
+                analysisTitle.textContent = "ERROR";
+                analysisText.textContent = "Please scan a valid Pokemon.";
+                analysisClose.style.display = 'block';
+            }
+
+        } catch (err) {
+            analysisTitle.textContent = "ERROR";
+            analysisText.textContent = "Connection lost.";
+            analysisClose.style.display = 'block';
+        }
+    });
+
+    async function identifyPokemon(base64) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+        
+        const payload = {
+            contents: [{
+                parts: [
+                    { text: "Identify the pokemon in this image. Return a JSON object with a single key 'pokemon' containing the name in lowercase. If no pokemon is clearly visible or it is a random object, set 'pokemon' to 'none'. Example: {\"pokemon\": \"pikachu\"}" },
+                    { inlineData: { mimeType: "image/jpeg", data: base64 } }
+                ]
+            }],
+            generationConfig: { responseMimeType: "application/json" }
+        };
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+        const text = data.candidates[0].content.parts[0].text;
+        return JSON.parse(text);
+    }
+
+    // --- APP LOGIC ---
+    const customMegas = {};
+    const megaIds = [3, 6, 9, 15, 18, 65, 80, 94, 115, 127, 130, 142, 150, 181, 208, 212, 214, 229, 248, 254, 257, 260, 282, 302, 303, 306, 308, 310, 319, 323, 334, 354, 359, 362, 373, 376, 380, 381, 384, 428, 445, 448, 460, 475, 531, 719]; 
+    const gmaxIds = [3, 6, 9, 12, 25, 52, 68, 94, 99, 131, 133, 143, 569, 809, 812, 815, 818, 823, 826, 834, 839, 841, 842, 844, 849, 851, 858, 861, 869, 879, 884, 892];
+
+    let allPokemonData = [];
+    let currentFilterType = 'all';
+
+    const grid = document.getElementById('pokemon-grid');
+    const loading = document.getElementById('loading');
+    const searchInput = document.getElementById('search-input');
+    const listView = document.getElementById('list-view');
+    const detailView = document.getElementById('detail-view');
+    
+    const selectBtn = document.getElementById('select-btn');
+    const selectLabel = document.getElementById('select-label');
+    const selectOptions = document.getElementById('select-options');
+
+    const dName = document.getElementById('detail-name');
+    const dId = document.getElementById('detail-id');
+    const dImg = document.getElementById('detail-img');
+    const dTypes = document.getElementById('detail-types');
+    const dHeight = document.getElementById('detail-height');
+    const dWeight = document.getElementById('detail-weight');
+    const dAbilities = document.getElementById('detail-abilities');
+    const dStats = document.getElementById('detail-stats-list');
+    const dEvo = document.getElementById('detail-evolutions');
+    const specialContainer = document.getElementById('special-evo-container');
+
+    const generations = [
+        { name: "GEN 1", start: 1, end: 151 },
+        { name: "GEN 2", start: 152, end: 251 },
+        { name: "GEN 3", start: 252, end: 386 },
+        { name: "GEN 4", start: 387, end: 493 },
+        { name: "GEN 5", start: 494, end: 649 },
+        { name: "GEN 6", start: 650, end: 721 },
+        { name: "GEN 7", start: 722, end: 809 },
+        { name: "GEN 8", start: 810, end: 905 },
+        { name: "GEN 9", start: 906, end: 1025 }
+    ];
+
+    async function init() {
+        initBattery();
+        await fetchGeneration(1, 151);
+        loading.style.display = 'none'; 
+        for (const gen of generations.slice(1)) {
+             await fetchGeneration(gen.start, gen.end);
+        }
+    }
+
+    async function fetchGeneration(start, end) {
+        const promises = [];
+        for (let i = start; i <= end; i++) {
+            promises.push(fetch(`https://pokeapi.co/api/v2/pokemon/${i}`).then(r => r.json()));
+        }
+        try {
+            const results = await Promise.all(promises);
+            const newData = results.map(p => formatPokemonData(p));
+            allPokemonData = [...allPokemonData, ...newData];
+            filter(); 
+        } catch (e) {
+            console.error("Gen Load Error", e);
+        }
+    }
+
+    function formatPokemonData(data) {
+        return {
+            id: data.id,
+            name: data.name,
+            img: data.sprites.front_default,
+            types: data.types.map(t => t.type.name),
+            height: data.height,
+            weight: data.weight,
+            stats: data.stats,
+            abilities: data.abilities.map(a => a.ability.name),
+            speciesUrl: data.species.url
+        };
+    }
+
+    function renderGrid(list) {
+        grid.innerHTML = list.map(p => `
+            <div class="card" onclick="openDetail(${p.id})">
+                <img src="${p.img}" loading="lazy">
+                <div style="font-size:8px; color:#306230;">#${p.id}</div>
+                <h3>${p.name}</h3>
+                <div>
+                    ${p.types.map(t => `<span class="type-badge">${t}</span>`).join('')}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    selectBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        selectOptions.classList.toggle('open');
+    });
+
+    document.querySelectorAll('.select-option').forEach(opt => {
+        opt.addEventListener('click', () => {
+            currentFilterType = opt.dataset.value;
+            selectLabel.textContent = opt.textContent;
+            selectOptions.classList.remove('open');
+            filter();
+        });
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!selectBtn.contains(e.target) && !selectOptions.contains(e.target)) {
+            selectOptions.classList.remove('open');
+        }
+    });
+
+    function filter() {
+        const term = searchInput.value.toLowerCase();
+        const filtered = allPokemonData.filter(p => {
+            const nameMatch = p.name.includes(term);
+            let typeMatch = true;
+            if (currentFilterType === 'mega') typeMatch = megaIds.includes(p.id);
+            else if (currentFilterType === 'gmax') typeMatch = gmaxIds.includes(p.id);
+            else if (currentFilterType !== 'all') typeMatch = p.types.includes(currentFilterType);
+            return nameMatch && typeMatch;
+        });
+        renderGrid(filtered);
+    }
+
+    searchInput.addEventListener('input', filter);
+
+    window.openDetail = async (id) => {
+        let p = allPokemonData.find(x => x.id == id);
+        if (!p) {
+            try {
+                const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
+                const data = await res.json();
+                p = formatPokemonData(data);
+            } catch(e) { console.log(e); return; }
+        }
+        specialContainer.innerHTML = '';
+        dImg.classList.remove('animating');
+        updateDetailUI(p);
+        listView.style.display = 'none';
+        detailView.style.display = 'flex';
+        dEvo.innerHTML = "SEARCHING DATA...";
+        try {
+            const speciesData = await fetch(p.speciesUrl).then(r => r.json());
+            checkVarieties(speciesData.varieties, p.name);
+            const evoData = await fetch(speciesData.evolution_chain.url).then(r => r.json());
+            renderEvoChain(evoData.chain);
+        } catch (e) {
+            dEvo.innerHTML = "DATA CORRUPTED";
+        }
+    };
+
+    function updateDetailUI(p) {
+        dName.textContent = p.name.replace('-', ' ');
+        dId.textContent = p.id ? `#${p.id.toString().padStart(3,'0')}` : '???';
+        dImg.src = p.img || p.sprites?.front_default;
+        dTypes.innerHTML = p.types.map(t => `<span class="type-badge" style="font-size:8px; padding:4px;">${t}</span>`).join('');
+        dHeight.textContent = (p.height / 10) + " m";
+        dWeight.textContent = (p.weight / 10) + " kg";
+        dAbilities.innerHTML = p.abilities.map(a => `> ${a.replace('-',' ')}`).join('<br>');
+        dStats.innerHTML = p.stats.map(s => `
+            <div class="stat-row">
+                <span>${s.stat.name.replace('special','sp').toUpperCase()}</span>
+                <span>${s.base_stat}</span>
+            </div>
+        `).join('');
+    }
+
+    function checkVarieties(varieties, pokemonName) {
+        if (customMegas[pokemonName]) {
+            createSpecialButton(customMegas[pokemonName].name, () => doCustomEvolution(pokemonName));
+            return;
+        }
+        if (!varieties) return;
+        const forms = varieties.filter(v => !v.is_default && (v.pokemon.name.includes('mega') || v.pokemon.name.includes('gmax')));
+        forms.forEach(form => {
+            const name = form.pokemon.name;
+            let label = "EVOLVE";
+            if (name.includes('gmax')) label = "GIGANTAMAX";
+            else if (name.includes('mega-x')) label = "MEGA X";
+            else if (name.includes('mega-y')) label = "MEGA Y";
+            else if (name.includes('mega')) label = "MEGA EVOLVE";
+            createSpecialButton(label, () => doApiEvolution(form.pokemon.url));
+        });
+    }
+
+    function createSpecialButton(text, clickHandler) {
+        const btn = document.createElement('button');
+        btn.className = 'special-btn';
+        btn.textContent = text;
+        btn.onclick = clickHandler;
+        specialContainer.appendChild(btn);
+    }
+
+    async function doApiEvolution(url) {
+        disableButtons();
+        startEvoAnimation();
+        try {
+            const raw = await fetch(url).then(r => r.json());
+            const megaData = formatPokemonData(raw);
+            setTimeout(() => {
+                updateDetailUI(megaData);
+                finishEvo();
+            }, 1200);
+        } catch (e) {
+            alert("Evolution Failed");
+            finishEvo();
+        }
+    }
+
+    function doCustomEvolution(name) {
+        disableButtons();
+        startEvoAnimation();
+        const customData = customMegas[name];
+        setTimeout(() => {
+            dName.textContent = customData.name;
+            dImg.src = customData.img;
+            dId.textContent = "";
+            finishEvo();
+        }, 1200);
+    }
+
+    function startEvoAnimation() { dImg.classList.add('animating'); }
+    function disableButtons() { specialContainer.querySelectorAll('button').forEach(b => { b.disabled = true; b.textContent = "EVOLVING..."; }); }
+    function finishEvo() { specialContainer.innerHTML = ''; dImg.classList.remove('animating'); }
+
+    function renderEvoChain(chain) {
+        let html = '';
+        function traverse(node) {
+            const speciesName = node.species.name;
+            const urlParts = node.species.url.split('/');
+            const id = urlParts[urlParts.length - 2];
+            const imgUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
+            html += `
+                <div class="evo-item" onclick="openDetail(${id})">
+                    <img src="${imgUrl}">
+                    <div style="font-size:7px; text-transform:uppercase;">${speciesName}</div>
+                </div>
+            `;
+            if (node.evolves_to.length > 0) {
+                if(node.evolves_to.length === 1) {
+                     html += `<div class="evo-arrow">➡</div>`;
+                     traverse(node.evolves_to[0]);
+                } else {
+                    html += `<div class="evo-arrow">➡</div>`;
+                    html += '<div style="display:flex; flex-wrap:wrap; justify-content:center; gap:10px; border-left:2px solid #306230; padding-left:10px;">';
+                    node.evolves_to.forEach(child => traverse(child));
+                    html += '</div>';
+                }
+            }
+        }
+        traverse(chain);
+        dEvo.innerHTML = html;
+    }
+
+    document.getElementById('back-btn').addEventListener('click', () => {
+        detailView.style.display = 'none';
+        listView.style.display = 'flex';
+    });
+
+    init();
+
+</script>
+</body>
+</html>
