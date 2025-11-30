@@ -538,7 +538,7 @@
     <!-- LIST VIEW -->
     <div id="list-view" style="display:flex; flex-direction:column; height:100%;">
         <header>
-            <h1>POKEDEX <span>v3.6</span></h1>
+            <h1>POKEDEX <span>v3.8</span></h1>
             <div id="battery-display" class="battery-display">BATTERY: --%</div>
         </header>
 
@@ -659,7 +659,7 @@
 </div>
 
 <script>
-    const apiKey = ""; // API KEY GOES HERE
+    const apiKey = "AIzaSyCUfS_yVdJ94wtWPCm-W-0W6jpaSotNxW4"; 
 
     // --- BATTERY LOGIC ---
     const batteryDisplay = document.getElementById('battery-display');
@@ -776,7 +776,7 @@
 
         } catch (err) {
             analysisTitle.textContent = "ERROR";
-            analysisText.textContent = "Connection lost.";
+            analysisText.textContent = "Connection lost. Check network.";
             analysisClose.style.display = 'block';
         }
     });
@@ -922,12 +922,15 @@
         const term = searchInput.value.toLowerCase().trim();
         const filtered = allPokemonData.filter(p => {
             const nameMatch = p.name.includes(term);
-            const idMatch = p.id.toString().includes(term);
+            const idMatch = p.id.toString() === term; // Strict ID match for better UX
+            const weakIdMatch = p.id.toString().includes(term);
+
             let typeMatch = true;
             if (currentFilterType === 'mega') typeMatch = megaIds.includes(p.id);
             else if (currentFilterType === 'gmax') typeMatch = gmaxIds.includes(p.id);
             else if (currentFilterType !== 'all') typeMatch = p.types.includes(currentFilterType);
-            return (nameMatch || idMatch) && typeMatch;
+            
+            return (nameMatch || idMatch || (term.length > 1 && weakIdMatch)) && typeMatch;
         });
         renderGrid(filtered);
     }
@@ -1072,3 +1075,5 @@
 </script>
 </body>
 </html>
+
+
