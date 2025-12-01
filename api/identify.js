@@ -1,13 +1,11 @@
-// This file runs on Vercel's server, keeping your key hidden.
-// 1. Install node-fetch if needed (Vercel usually handles standard fetch in Node 18+)
-// 2. Add GEMINI_API_KEY to your Vercel Environment Variables.
-
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   const { image } = req.body;
+  
+  // This reads the key you added in Vercel Settings
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
@@ -37,7 +35,6 @@ export default async function handler(req, res) {
     
     if (!text) throw new Error("Invalid AI response");
 
-    // Pass the raw JSON text back to frontend
     res.status(200).json(JSON.parse(text));
 
   } catch (error) {
