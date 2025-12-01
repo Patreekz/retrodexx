@@ -538,7 +538,7 @@
     <!-- LIST VIEW -->
     <div id="list-view" style="display:flex; flex-direction:column; height:100%;">
         <header>
-            <h1>POKEDEX <span>v3.8</span></h1>
+            <h1>POKEDEX <span>v4.0</span></h1>
             <div id="battery-display" class="battery-display">BATTERY: --%</div>
         </header>
 
@@ -659,9 +659,6 @@
 </div>
 
 <script>
-    
-    const apiKey = "API"; 
-
     // --- BATTERY LOGIC ---
     const batteryDisplay = document.getElementById('battery-display');
 
@@ -690,6 +687,7 @@
     }
 
     // --- SCANNER LOGIC ---
+    // Modified to support Vercel Backend OR Client fallback
     const scanBtn = document.getElementById('scan-btn');
     const scannerOverlay = document.getElementById('scanner-overlay');
     const cameraFeed = document.getElementById('camera-feed');
@@ -702,6 +700,18 @@
     const analysisText = document.getElementById('analysis-text');
     const analysisClose = document.getElementById('analysis-close');
     let stream = null;
+
+    // Helper: Client side key storage if not using backend
+    function getGeminiKey() {
+        let key = localStorage.getItem('retro_pokedex_api_key');
+        if (!key || key === 'null') {
+            key = prompt("ENTER GEMINI API KEY (For Client-Side Mode):\n(If you deployed a backend, ignore this and ensure /api/identify is reachable)");
+            if (key) {
+                localStorage.setItem('retro_pokedex_api_key', key);
+            }
+        }
+        return key;
+    }
 
     scanBtn.addEventListener('click', async () => {
         scannerOverlay.style.display = 'flex';
@@ -751,7 +761,8 @@
         analysisClose.style.display = 'none';
 
         try {
-            const result = await identifyPokemon(base64Image);
+            // HYBRID STRATEGY: Try Backend -> Fail -> Try Client Key
+            const result = await identifyPokemonHybrid(base64Image);
             
             if (result && result.pokemon && result.pokemon !== 'none') {
                 analysisTitle.textContent = "IDENTIFIED!";
@@ -777,13 +788,35 @@
 
         } catch (err) {
             analysisTitle.textContent = "ERROR";
-            analysisText.textContent = "Connection lost. Check network.";
+            analysisText.textContent = "Analysis Failed. Check Connection or Key.";
             analysisClose.style.display = 'block';
         }
     });
 
-    async function identifyPokemon(base64) {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+    async function identifyPokemonHybrid(base64) {
+        // 1. Attempt Backend Call (Secure)
+        try {
+            const response = await fetch('/api/identify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: base64 })
+            });
+            if (response.ok) {
+                return await response.json();
+            }
+        } catch(e) {
+            console.log("Backend not found, falling back to client-side");
+        }
+
+        // 2. Fallback to Client Side (Insecure/Preview)
+        return identifyPokemonClientSide(base64);
+    }
+
+    async function identifyPokemonClientSide(base64) {
+        const key = getGeminiKey();
+        if(!key) throw new Error("No Key");
+
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${key}`;
         
         const payload = {
             contents: [{
@@ -800,6 +833,8 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
+
+        if (!response.ok) throw new Error("API Error");
 
         const data = await response.json();
         const text = data.candidates[0].content.parts[0].text;
@@ -923,7 +958,7 @@
         const term = searchInput.value.toLowerCase().trim();
         const filtered = allPokemonData.filter(p => {
             const nameMatch = p.name.includes(term);
-            const idMatch = p.id.toString() === term; // Strict ID match for better UX
+            const idMatch = p.id.toString() === term; 
             const weakIdMatch = p.id.toString().includes(term);
 
             let typeMatch = true;
