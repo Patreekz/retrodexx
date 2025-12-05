@@ -538,7 +538,7 @@
     <!-- LIST VIEW -->
     <div id="list-view" style="display:flex; flex-direction:column; height:100%;">
         <header>
-            <h1>POKEDEX <span>v4.1</span></h1>
+            <h1>POKEDEX <span>v4.3</span></h1>
             <div id="battery-display" class="battery-display">BATTERY: --%</div>
         </header>
 
@@ -687,7 +687,6 @@
     }
 
     // --- SCANNER LOGIC ---
-    // Modified to use Backend route blindly
     const scanBtn = document.getElementById('scan-btn');
     const scannerOverlay = document.getElementById('scanner-overlay');
     const cameraFeed = document.getElementById('camera-feed');
@@ -705,11 +704,13 @@
         scannerOverlay.style.display = 'flex';
         scannerStatus.textContent = "INITIALIZING SENSORS...";
         try {
-            stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+            stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { facingMode: "environment" } 
+            });
             cameraFeed.srcObject = stream;
             scannerStatus.textContent = "READY TO CAPTURE";
         } catch (err) {
-            scannerStatus.textContent = "CAMERA ERROR";
+            scannerStatus.textContent = "CAMERA ERROR: " + err.name;
             console.error(err);
         }
     });
@@ -749,7 +750,6 @@
         analysisClose.style.display = 'none';
 
         try {
-            // Send directly to backend
             const result = await identifyPokemon(base64Image);
             
             if (result && result.pokemon && result.pokemon !== 'none') {
@@ -776,14 +776,14 @@
 
         } catch (err) {
             analysisTitle.textContent = "ERROR";
-            analysisText.textContent = "Server Error. Check Backend Setup.";
+            analysisText.textContent = "Server Error. Check Backend.";
             console.error(err);
             analysisClose.style.display = 'block';
         }
     });
 
     async function identifyPokemon(base64) {
-        // Calls the Vercel Backend Function directly
+        // CALL THE BACKEND FUNCTION:
         const response = await fetch('/api/identify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -794,8 +794,7 @@
             throw new Error(`Server Error: ${response.status}`);
         }
 
-        const data = await response.json();
-        return data;
+        return await response.json();
     }
 
 
@@ -915,15 +914,13 @@
         const term = searchInput.value.toLowerCase().trim();
         const filtered = allPokemonData.filter(p => {
             const nameMatch = p.name.includes(term);
-            const idMatch = p.id.toString() === term; // Exact match for ID to avoid "1" showing "10", "100" etc
-            
+            const idMatch = p.id.toString() === term; // Exact match for ID
+            const weakIdMatch = p.id.toString().includes(term);
+
             let typeMatch = true;
             if (currentFilterType === 'mega') typeMatch = megaIds.includes(p.id);
             else if (currentFilterType === 'gmax') typeMatch = gmaxIds.includes(p.id);
             else if (currentFilterType !== 'all') typeMatch = p.types.includes(currentFilterType);
-            
-            // Allow partial ID match if term length > 1, else exact for small numbers
-            const weakIdMatch = p.id.toString().includes(term);
             
             return (nameMatch || idMatch || (term.length > 1 && weakIdMatch)) && typeMatch;
         });
@@ -1070,5 +1067,3 @@
 </script>
 </body>
 </html>
-
-
