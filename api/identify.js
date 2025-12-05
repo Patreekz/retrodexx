@@ -1,11 +1,12 @@
 export default async function handler(req, res) {
+  // Only allow POST requests
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   const { image } = req.body;
   
-  // This reads the key you added in Vercel Settings
+  // securely access the key from Vercel Environment Variables
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
@@ -13,8 +14,9 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Using the public gemini-1.5-flash model
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -30,11 +32,16 @@ export default async function handler(req, res) {
       }
     );
 
+    if (!response.ok) {
+        throw new Error(`Gemini API Error: ${response.statusText}`);
+    }
+
     const data = await response.json();
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
     
     if (!text) throw new Error("Invalid AI response");
 
+    // Return the result to the frontend
     res.status(200).json(JSON.parse(text));
 
   } catch (error) {
