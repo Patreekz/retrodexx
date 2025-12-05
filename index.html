@@ -538,7 +538,7 @@
     <!-- LIST VIEW -->
     <div id="list-view" style="display:flex; flex-direction:column; height:100%;">
         <header>
-            <h1>POKEDEX <span>v4.3</span></h1>
+            <h1>POKEDEX <span>v4.4</span></h1>
             <div id="battery-display" class="battery-display">BATTERY: --%</div>
         </header>
 
@@ -687,6 +687,7 @@
     }
 
     // --- SCANNER LOGIC ---
+    // Modified to use Backend route blindly
     const scanBtn = document.getElementById('scan-btn');
     const scannerOverlay = document.getElementById('scanner-overlay');
     const cameraFeed = document.getElementById('camera-feed');
@@ -710,7 +711,7 @@
             cameraFeed.srcObject = stream;
             scannerStatus.textContent = "READY TO CAPTURE";
         } catch (err) {
-            scannerStatus.textContent = "CAMERA ERROR: " + err.name;
+            scannerStatus.textContent = "CAMERA ERROR";
             console.error(err);
         }
     });
@@ -750,6 +751,7 @@
         analysisClose.style.display = 'none';
 
         try {
+            // Send directly to backend (NO KEY IN HTML)
             const result = await identifyPokemon(base64Image);
             
             if (result && result.pokemon && result.pokemon !== 'none') {
@@ -776,14 +778,14 @@
 
         } catch (err) {
             analysisTitle.textContent = "ERROR";
-            analysisText.textContent = "Server Error. Check Backend.";
+            analysisText.textContent = "Server Error. Check Backend Setup.";
             console.error(err);
             analysisClose.style.display = 'block';
         }
     });
 
     async function identifyPokemon(base64) {
-        // CALL THE BACKEND FUNCTION:
+        // Calls the Vercel Backend Function directly
         const response = await fetch('/api/identify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -794,7 +796,8 @@
             throw new Error(`Server Error: ${response.status}`);
         }
 
-        return await response.json();
+        const data = await response.json();
+        return data;
     }
 
 
@@ -914,7 +917,7 @@
         const term = searchInput.value.toLowerCase().trim();
         const filtered = allPokemonData.filter(p => {
             const nameMatch = p.name.includes(term);
-            const idMatch = p.id.toString() === term; // Exact match for ID
+            const idMatch = p.id.toString() === term; // Exact match for ID to avoid "1" showing "10", "100" etc
             const weakIdMatch = p.id.toString().includes(term);
 
             let typeMatch = true;
